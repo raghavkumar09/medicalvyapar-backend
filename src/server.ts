@@ -9,7 +9,7 @@ async function startServer() {
     await prisma.$connect();
     logger.info("✅ Database connected successfully");
 
-    app.listen(env.PORT, () => {
+    app.listen(env.PORT, "0.0.0.0", () => {
       logger.info(`🚀 MediVyapar API server running on port ${env.PORT}`);
       logger.info(`📍 Environment: ${env.NODE_ENV}`);
       logger.info(`🔗 Health check: http://localhost:${env.PORT}/api/v1/health`);

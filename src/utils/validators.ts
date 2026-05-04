@@ -16,6 +16,7 @@ export const verifyOtpSchema = z.object({
     .string()
     .regex(/^[6-9]\d{9}$/, "Invalid Indian mobile number"),
   code: z.string().length(6, "OTP must be 6 digits"),
+  type: z.enum(["REGISTRATION", "LOGIN", "PASSWORD_RESET", "PHONE_VERIFY"]).default("LOGIN"),
 });
 
 export const registerSchema = z.object({
