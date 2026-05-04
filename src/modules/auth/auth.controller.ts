@@ -1,29 +1,46 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
+import type { AuthRequest } from "../../middleware/auth.middleware.js";
 import authService from "./auth.service.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
 
+class AuthController {
+  sendOtp = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.sendOtp(req.body);
+    res.status(200).json(new ApiResponse(200, "OTP sent successfully", result));
+  });
 
-export class AuthController {
-    async registerUser(req: Request, res: Response) {
-        const user = await authService.registerUser(req.body);
-        return res.json(user);
-    }
+  verifyOtp = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.verifyOtp(req.body);
+    res.status(200).json(new ApiResponse(200, "OTP verified", result));
+  });
 
-    async loginUser(req: Request, res: Response) {
-        const user = await authService.loginUser(req.body);
-        return res.json(user);
-    }
+  register = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.register(req.body);
+    res.status(201).json(new ApiResponse(201, "Registration successful", result));
+  });
 
-    async logoutUser(req: Request, res: Response) {
-        const user = await authService.logoutUser(req.body);
-        return res.json(user);
-    }
+  login = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.login(req.body);
+    res.status(200).json(new ApiResponse(200, "Login successful", result));
+  });
 
-    async getCurrentUser(req: Request, res: Response) {
-        const user = await authService.getCurrentUser(req.body);
-        return res.json(user);
-    }
+  refreshToken = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { refreshToken } = req.body as { refreshToken: string };
+    const result = await authService.refreshToken(refreshToken);
+    res.status(200).json(new ApiResponse(200, "Token refreshed", result));
+  });
+
+  logout = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.logout(req.user!.id);
+    res.status(200).json(new ApiResponse(200, "Logged out", result));
+  });
+
+  me = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const result = await authService.getCurrentUser(req.user!.id);
+    res.status(200).json(new ApiResponse(200, "User profile", result));
+  });
 }
 
 const authController = new AuthController();
-
 export default authController;
