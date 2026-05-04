@@ -35,7 +35,8 @@ export const registerSchema = z.object({
   gstNumber: z
     .string()
     .regex(/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/, "Invalid GST number")
-    .optional(),
+    .optional()
+    .nullable(),
   licenseNumber: z.string().min(3, "License number is required"),
 });
 
@@ -65,8 +66,9 @@ export const createShopSchema = z.object({
   gstNumber: z
     .string()
     .regex(/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/)
-    .optional(),
-  licenseNumber: z.string().optional(),
+    .optional()
+    .nullable(),
+  licenseNumber: z.string().optional().nullable(),
   billingType: z.enum(["RETAIL", "WHOLESALE", "BOTH"]).default("RETAIL"),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -137,8 +139,8 @@ export const addStockSchema = z.object({
   mrp: z.number().positive("MRP must be positive"),
   purchasePrice: z.number().positive("Purchase price must be positive"),
   sellingPrice: z.number().positive("Selling price must be positive"),
-  rackSlotId: z.string().optional(),
-  supplierId: z.string().optional(),
+  rackSlotId: z.string().optional().nullable(),
+  supplierId: z.string().optional().nullable(),
 });
 
 export const updateStockSchema = z.object({
