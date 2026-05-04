@@ -1,18 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Owner model
 model Owner {
   id                 String   @id @default(cuid())
   name               String
@@ -24,5 +18,336 @@ model Owner {
   licenseNumber      String   @unique
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  avatar             String?
+  isActive           Boolean  @default(true)
+  password           String
+  refreshToken       String?
+  otps               Otp[]
+  shops              Shop[]
+
+  @@index([email])
+  @@index([mobileNo])
 }
 
+model Otp {
+  id        String   @id @default(cuid())
+  code      String
+  type      OtpType
+  target    String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  attempts  Int      @default(0)
+  ownerId   String?
+  createdAt DateTime @default(now())
+  owner     Owner?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([target, type])
+  @@index([expiresAt])
+}
+
+model Shop {
+  id            String          @id @default(cuid())
+  name          String
+  address       String
+  city          String
+  state         String
+  pincode       String
+  phone         String
+  email         String?
+  gstNumber     String?         @unique
+  licenseNumber String?         @unique
+  billingType   BillingType     @default(RETAIL)
+  latitude      Float?
+  longitude     Float?
+  isActive      Boolean         @default(true)
+  openingTime   String?
+  closingTime   String?
+  ownerId       String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  customers     Customer[]
+  invoices      Invoice[]
+  medicineStock MedicineStock[]
+  racks         Rack[]
+  owner         Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  staff         Staff[]
+  suppliers     Supplier[]
+
+  @@index([ownerId])
+  @@index([city, state])
+}
+
+model Staff {
+  id        String    @id @default(cuid())
+  name      String
+  mobileNo  String
+  email     String?
+  password  String
+  role      StaffRole
+  isActive  Boolean   @default(true)
+  shopId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  invoices  Invoice[]
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([mobileNo, shopId])
+  @@index([shopId])
+}
+
+model Medicine {
+  id              String          @id @default(cuid())
+  name            String
+  genericName     String?
+  saltComposition String?
+  manufacturer    String?
+  category        String?
+  hsnCode         String?
+  gstRate         Float           @default(12)
+  prescriptionReq Boolean         @default(false)
+  description     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  stocks          MedicineStock[]
+
+  @@index([name])
+  @@index([genericName])
+  @@index([saltComposition])
+}
+
+model Rack {
+  id        String     @id @default(cuid())
+  name      String
+  rows      Int        @default(5)
+  columns   Int        @default(4)
+  shopId    String
+  location  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  slots     RackSlot[]
+
+  @@unique([name, shopId])
+  @@index([shopId])
+}
+
+model RackSlot {
+  id     String          @id @default(cuid())
+  label  String
+  row    Int
+  column Int
+  rackId String
+  stocks MedicineStock[]
+  rack   Rack            @relation(fields: [rackId], references: [id], onDelete: Cascade)
+
+  @@unique([rackId, row, column])
+  @@index([rackId])
+}
+
+model MedicineStock {
+  id            String          @id @default(cuid())
+  batchNumber   String
+  expiryDate    DateTime
+  quantity      Int             @default(0)
+  minStockLevel Int             @default(10)
+  mrp           Float
+  purchasePrice Float
+  sellingPrice  Float
+  medicineId    String
+  shopId        String
+  rackSlotId    String?
+  supplierId    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  invoiceItems  InvoiceItem[]
+  medicine      Medicine        @relation(fields: [medicineId], references: [id])
+  rackSlot      RackSlot?       @relation(fields: [rackSlotId], references: [id])
+  shop          Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  supplier      Supplier?       @relation(fields: [supplierId], references: [id])
+  movements     StockMovement[]
+
+  @@unique([batchNumber, medicineId, shopId])
+  @@index([shopId])
+  @@index([medicineId])
+  @@index([expiryDate])
+  @@index([quantity])
+}
+
+model StockMovement {
+  id              String            @id @default(cuid())
+  type            StockMovementType
+  quantity        Int
+  previousQty     Int
+  newQty          Int
+  reason          String?
+  medicineStockId String
+  createdAt       DateTime          @default(now())
+  medicineStock   MedicineStock     @relation(fields: [medicineStockId], references: [id])
+
+  @@index([medicineStockId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Supplier {
+  id          String          @id @default(cuid())
+  name        String
+  contactName String?
+  phone       String
+  email       String?
+  gstNumber   String?
+  address     String?
+  city        String?
+  state       String?
+  isActive    Boolean         @default(true)
+  shopId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  stocks      MedicineStock[]
+  shop        Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([phone, shopId])
+  @@index([shopId])
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  address   String?
+  shopId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
+
+  @@unique([phone, shopId])
+  @@index([shopId])
+  @@index([phone])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Float         @default(0)
+  discountAmount  Float         @default(0)
+  discountPercent Float         @default(0)
+  taxableAmount   Float         @default(0)
+  cgstAmount      Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalTax        Float         @default(0)
+  grandTotal      Float         @default(0)
+  roundOff        Float         @default(0)
+  finalAmount     Float         @default(0)
+  paymentMode     PaymentMode   @default(CASH)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paidAmount      Float         @default(0)
+  dueAmount       Float         @default(0)
+  notes           String?
+  isInterState    Boolean       @default(false)
+  shopId          String
+  customerId      String?
+  staffId         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  shop            Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  staff           Staff?        @relation(fields: [staffId], references: [id])
+  items           InvoiceItem[]
+  payments        Payment[]
+
+  @@index([shopId])
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([invoiceNumber])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id              String        @id @default(cuid())
+  quantity        Int
+  unitPrice       Float
+  discountPercent Float         @default(0)
+  discountAmount  Float         @default(0)
+  taxableAmount   Float         @default(0)
+  gstRate         Float         @default(0)
+  cgstAmount      Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalAmount     Float         @default(0)
+  invoiceId       String
+  medicineStockId String
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  medicineStock   MedicineStock @relation(fields: [medicineStockId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id             String      @id @default(cuid())
+  amount         Float
+  mode           PaymentMode
+  transactionRef String?
+  notes          String?
+  invoiceId      String
+  createdAt      DateTime    @default(now())
+  invoice        Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+enum StaffRole {
+  ADMIN
+  MANAGER
+  SALESMAN
+  PACKER
+}
+
+enum OtpType {
+  REGISTRATION
+  LOGIN
+  PASSWORD_RESET
+  PHONE_VERIFY
+  EMAIL_VERIFY
+}
+
+enum BillingType {
+  RETAIL
+  WHOLESALE
+  BOTH
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  NETBANKING
+  CREDIT
+  MIXED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REFUNDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+  RETURNED
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  RETURN
+  ADJUSTMENT
+  EXPIRED
+  DAMAGED
+}
