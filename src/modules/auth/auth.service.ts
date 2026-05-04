@@ -49,7 +49,7 @@ export class AuthService {
   // ── Verify OTP ──────────────────────────────────────────
 
   async verifyOtp(data: VerifyOtpInput) {
-    const otp = await authRepository.findLatestOtp(data.mobileNo, "LOGIN");
+    const otp = await authRepository.findLatestOtp(data.mobileNo, data.type);
 
     if (!otp) {
       throw ApiError.badRequest("No valid OTP found. Please request a new one.");
